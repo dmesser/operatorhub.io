@@ -1,4 +1,4 @@
-FROM registry.access.redhat.com/ubi8/python-36 as python-build
+FROM python:3.6 as python-build
 
 ARG COURIER_VERSION=2.1.0
 ARG OPERATORS_REPO=https://github.com/operator-framework/community-operators
@@ -12,28 +12,30 @@ RUN cd /tmp/community-operators/upstream-community-operators \
     && find . -mindepth 1 -maxdepth 1 -type d -exec echo "courier-operator -> {}" \; -exec operator-courier nest {} nested-structure/{} \;  \
     && echo "Done"
 
-FROM registry.access.redhat.com/ubi8/nodejs-10:latest as node-server-build
+FROM node:11.15.0-stretch-slim as node-frontend-build
+WORKDIR /app
 
-COPY server/package.json server/package-lock.json /opt/app-root/src/
+COPY frontend/package.json .
 RUN npm install
 
-COPY server/ /opt/app-root/src/
-
-FROM registry.access.redhat.com/ubi8/nodejs-10:latest as node-frontend-build
-
-COPY frontend/package.json frontend/package-lock.json /opt/app-root/src/
-RUN npm install
-
-COPY frontend/ /opt/app-root/src/
-#RUN npm update caniuse-lite browserslist
+COPY frontend/ /app/
 RUN npm run-script build
 
-FROM registry.access.redhat.com/ubi8/nodejs-10:latest
+FROM node:11.15.0-stretch-slim as node-server-build
+WORKDIR /app
+
+COPY server/package.json .
+RUN npm install
+
+COPY server/ /app
+
+FROM node:11.15.0-stretch-slim
+WORKDIR /app/server
 
 ENTRYPOINT [ "node" ]
 EXPOSE 8080
-CMD [ "/opt/app-root/src/server/server.js" ]
+CMD [ "/app/server/server.js" ]
 
-COPY --from=node-frontend-build /opt/app-root/src/ /opt/app-root/src/frontend
-COPY --from=node-server-build /opt/app-root/src/ /opt/app-root/src/server
-COPY --from=python-build /tmp/community-operators /opt/app-root/src/server/data/store/community-operators
+COPY --from=node-frontend-build /app/ /app/frontend
+COPY --from=node-server-build /app/ /app/server
+COPY --from=python-build /tmp/community-operators /app/server/data/community-operators
