@@ -36,4 +36,4 @@ CMD [ "/opt/app-root/src/server/server.js" ]
 
 COPY --from=node-frontend-build /opt/app-root/src/ /opt/app-root/src/frontend
 COPY --from=node-server-build /opt/app-root/src/ /opt/app-root/src/server
-COPY --from=python-build /tmp/community-operators /opt/app-root/src/server/data/community-operators
+COPY --from=python-build /tmp/community-operators/upstream-community-operators/nested-structure /opt/app-root/src/server/data/community-operators/upstream-community-operators
